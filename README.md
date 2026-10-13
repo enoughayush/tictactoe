@@ -1,10 +1,10 @@
-﻿# Python Console Projects
+# Python Console Projects
 
-A small collection of interactive Python programs that run in the terminal. The repository currently contains a rule-based chatbot and a Tic-Tac-Toe game against a computer opponent.
+A small collection of interactive Python programs: an AI-based Tic-Tac-Toe game and a predefined-rules chatbot. Both run in the terminal and use only the Python standard library.
 
 ## Projects
 
-### Rule-Based Chatbot — `chatbot.py`
+### Predefined-Rules Chatbot — `chatbot.py`
 
 An offline chatbot that responds to a set of predefined topics and commands.
 
@@ -16,7 +16,7 @@ An offline chatbot that responds to a set of predefined topics and commands.
 
 The chatbot works offline. It does not use a language model or access live information such as weather.
 
-### Tic-Tac-Toe — `tictactoe.py`
+### AI-Based Tic-Tac-Toe Game — `tictactoe.py`
 
 A two-symbol, single-player game against a computer opponent.
 

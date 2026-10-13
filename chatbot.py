@@ -1,4 +1,4 @@
-﻿"""An offline chatbot that responds to common messages using predefined rules."""
+"""Predefined-Rules Chatbot: an offline, rule-based conversational program."""
 
 import ast
 import operator
@@ -130,7 +130,7 @@ def get_response(message: str) -> str:
 def main() -> None:
     """Run the chatbot in an interactive terminal session."""
     print("=" * 52)
-    print("                 CHATBOT")
+    print("           PREDEFINED-RULES CHATBOT")
     print("=" * 52)
     print("Type 'help' to see what I can do, or 'bye' to exit.\n")
 

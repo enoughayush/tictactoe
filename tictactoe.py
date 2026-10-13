@@ -1,4 +1,4 @@
-﻿"""Play Tic-Tac-Toe against an unbeatable minimax computer opponent."""
+"""AI-Based Tic-Tac-Toe Game with a minimax computer opponent."""
 
 from math import inf
 from typing import List, Optional, Tuple
@@ -177,7 +177,7 @@ def play_game() -> None:
 def main() -> None:
     """Display the game menu and offer another round after each game."""
     print("=" * 52)
-    print("           TIC-TAC-TOE  |  PLAYER VS COMPUTER")
+    print("             AI-BASED TIC-TAC-TOE GAME")
     print("=" * 52)
     print("Get three of your symbols in a row to win.\n")
 
