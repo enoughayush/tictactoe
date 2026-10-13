@@ -1,13 +1,15 @@
-﻿"""An offline chatbot that responds using predefined rules."""
+﻿"""An offline chatbot that responds to common messages using predefined rules."""
 
 import ast
 import operator
 import random
 import re
 from datetime import datetime
+from typing import Union
 
+Number = Union[int, float]
 
-# Only these arithmetic operations are allowed by the calculator.
+# Arithmetic is limited to these operations; user input is never passed to eval().
 _OPERATORS = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,
@@ -20,18 +22,32 @@ _OPERATORS = {
     ast.UAdd: operator.pos,
 }
 
+EXIT_COMMANDS = {"bye", "goodbye", "see you", "exit", "quit"}
+CAPITALS = {
+    "france": "Paris",
+    "india": "New Delhi",
+    "japan": "Tokyo",
+    "italy": "Rome",
+    "canada": "Ottawa",
+}
+JOKES = (
+    "Why did the computer go to the doctor? It had a virus!",
+    "Why was the math book sad? It had too many problems.",
+    "Why do programmers prefer dark mode? Because light attracts bugs!",
+)
 
-def calculate(expression):
-    """Safely calculate a basic arithmetic expression without using eval()."""
+
+def calculate(expression: str) -> Number:
+    """Safely evaluate a basic arithmetic expression."""
     if len(expression) > 50:
         raise ValueError("That calculation is too long.")
 
     tree = ast.parse(expression, mode="eval")
 
-    def evaluate(node):
+    def evaluate(node: ast.AST) -> Number:
         if isinstance(node, ast.Expression):
             return evaluate(node.body)
-        if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+        if isinstance(node, ast.Constant) and type(node.value) in (int, float):
             return node.value
         if isinstance(node, ast.BinOp) and type(node.op) in _OPERATORS:
             left = evaluate(node.left)
@@ -49,13 +65,15 @@ def calculate(expression):
     return evaluate(tree)
 
 
-def get_response(message):
-    """Choose a response from predefined rules based on the user's message."""
+def get_response(message: str) -> str:
+    """Return a response based on the message and the chatbot's rules."""
     text = message.strip().lower()
     if not text:
         return "Please type a message so I can respond."
+    if text in EXIT_COMMANDS:
+        return "Goodbye! It was nice chatting with you."
 
-    # Match a basic arithmetic expression, such as "12 * (3 + 2)".
+    # Accept simple expressions such as "12 * (3 + 2)".
     if re.fullmatch(r"[\d\s().+\-*/%]+", text) and re.search(r"\d", text):
         try:
             result = calculate(text)
@@ -65,49 +83,43 @@ def get_response(message):
 
     if re.search(r"\b(hi|hello|hey|good morning|good afternoon|good evening)\b", text):
         return "Hello! What would you like to talk about?"
-    elif re.search(r"\bhow are you\b", text):
-        return "I'm doing well, thanks for asking! What can I help with?"
-    elif re.search(r"\b(your name|who are you)\b", text):
+    if re.search(r"\bhow are you\b", text):
+        return "I'm doing well, thanks for asking. What can I help with?"
+    if re.search(r"\b(your name|who are you)\b", text):
         return "I'm ChatBot, an offline chatbot that uses predefined rules."
-    elif re.search(r"\bwhat can you do\b|\bhelp\b", text):
+    if re.search(r"\bwhat can you do\b|\bhelp\b", text):
         return (
-            "I can chat about greetings, feelings, jokes, studying, and basic Python; "
-            "share a few facts; tell you the date or time; and calculate basic math."
+            "I can chat about common topics, tell a joke, share a few capital cities, "
+            "give the date or time, and calculate basic math."
         )
-    elif re.search(r"\b(thank you|thanks|thx)\b", text):
+    if re.search(r"\b(thank you|thanks|thx)\b", text):
         return "You're welcome!"
-    elif re.search(r"\b(bye|goodbye|see you|exit|quit)\b", text):
-        return "Goodbye! It was nice chatting with you."
-    elif re.search(r"\b(joke|make me laugh)\b", text):
-        return random.choice([
-            "Why did the computer go to the doctor? It had a virus!",
-            "Why was the math book sad? It had too many problems.",
-            "Why do programmers prefer dark mode? Because light attracts bugs!",
-        ])
-    elif re.search(r"\b(time|what time)\b", text):
+    if re.search(r"\b(joke|make me laugh)\b", text):
+        return random.choice(JOKES)
+    if re.search(r"\b(time|what time)\b", text):
         return f"The time is {datetime.now().strftime('%I:%M %p')} on this computer."
-    elif re.search(r"\b(date|what day|today)\b", text):
+    if re.search(r"\b(date|what day|today)\b", text):
         return f"Today is {datetime.now().strftime('%A, %B %d, %Y')}."
-    elif re.search(r"\b(weather|forecast)\b", text):
+    if re.search(r"\b(weather|forecast)\b", text):
         return "I work offline, so I can't check live weather."
-    elif re.search(r"\b(sad|unhappy|upset|lonely|bad day)\b", text):
-        return "I'm sorry you're having a hard time. Want to tell me a little more?"
-    elif re.search(r"\b(happy|excited|great day)\b", text):
+    if re.search(r"\b(sad|unhappy|upset|lonely|bad day)\b", text):
+        return "I'm sorry you're having a hard time. Would you like to tell me more?"
+    if re.search(r"\b(happy|excited|great day)\b", text):
         return "That's great to hear! What made your day good?"
-    elif re.search(r"\b(study|studying|exam|homework)\b", text):
+    if re.search(r"\b(study|studying|exam|homework)\b", text):
         return "Try studying in short sessions with small breaks. What subject are you working on?"
-    elif re.search(r"\b(python|programming|coding)\b", text):
-        return "Python is a programming language. I can help with simple arithmetic, but I only know a few predefined coding replies."
-    elif re.search(r"\b(capital of france|capital of india|capital of japan|capital of italy|capital of canada)\b", text):
-        if "france" in text:
-            return "The capital of France is Paris."
-        if "india" in text:
-            return "The capital of India is New Delhi."
-        if "japan" in text:
-            return "The capital of Japan is Tokyo."
-        if "italy" in text:
-            return "The capital of Italy is Rome."
-        return "The capital of Canada is Ottawa."
+    if re.search(r"\b(python|programming|coding)\b", text):
+        return (
+            "Python is a programming language. I can calculate basic math and respond "
+            "to a few predefined programming topics."
+        )
+
+    capital_match = re.search(
+        r"\bcapital of (france|india|japan|italy|canada)\b", text
+    )
+    if capital_match:
+        country = capital_match.group(1)
+        return f"The capital of {country.title()} is {CAPITALS[country]}."
 
     return (
         "I don't have a rule for that yet, and I work offline. "
@@ -115,15 +127,23 @@ def get_response(message):
     )
 
 
-def main():
-    print("ChatBot: Hi! Type 'help' to see what I can do, or 'bye' to exit.")
+def main() -> None:
+    """Run the chatbot in an interactive terminal session."""
+    print("=" * 52)
+    print("                 CHATBOT")
+    print("=" * 52)
+    print("Type 'help' to see what I can do, or 'bye' to exit.\n")
 
     while True:
-        user_input = input("You: ").strip()
-        response = get_response(user_input)
-        print(f"ChatBot: {response}")
+        try:
+            user_input = input("You: ").strip()
+        except EOFError:
+            print("\nChatBot: Session ended. Goodbye!")
+            break
 
-        if user_input.lower() in {"bye", "goodbye", "see you", "exit", "quit"}:
+        response = get_response(user_input)
+        print(f"ChatBot: {response}\n")
+        if user_input.lower() in EXIT_COMMANDS:
             break
 
 

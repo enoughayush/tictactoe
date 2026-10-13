@@ -1,7 +1,11 @@
-import math
+﻿"""Play Tic-Tac-Toe against an unbeatable minimax computer opponent."""
 
+from math import inf
+from typing import List, Optional, Tuple
+
+Board = List[str]
 EMPTY = " "
-WINNING_LINES = [
+WINNING_LINES: Tuple[Tuple[int, int, int], ...] = (
     (0, 1, 2),
     (3, 4, 5),
     (6, 7, 8),
@@ -10,39 +14,44 @@ WINNING_LINES = [
     (2, 5, 8),
     (0, 4, 8),
     (2, 4, 6),
-]
+)
+MOVE_PRIORITY = (4, 0, 2, 6, 8, 1, 3, 5, 7)
 
 
-def print_board(board):
+def print_board(board: Board) -> None:
+    """Display the board, numbering each empty square for the next move."""
     cells = [cell if cell != EMPTY else str(index + 1) for index, cell in enumerate(board)]
-    print(f"\n {cells[0]} | {cells[1]} | {cells[2]} ")
-    print("---+---+---")
-    print(f" {cells[3]} | {cells[4]} | {cells[5]} ")
-    print("---+---+---")
-    print(f" {cells[6]} | {cells[7]} | {cells[8]} \n")
+    print(f"\n  {cells[0]} | {cells[1]} | {cells[2]} ")
+    print(" ---+---+---")
+    print(f"  {cells[3]} | {cells[4]} | {cells[5]} ")
+    print(" ---+---+---")
+    print(f"  {cells[6]} | {cells[7]} | {cells[8]} \n")
 
 
-def available_moves(board):
+def available_moves(board: Board) -> List[int]:
+    """Return the indexes of all unoccupied squares."""
     return [index for index, spot in enumerate(board) if spot == EMPTY]
 
 
-def is_full(board):
+def is_full(board: Board) -> bool:
+    """Return True when no empty squares remain."""
     return all(spot != EMPTY for spot in board)
 
 
-def get_winner(board):
-    for a, b, c in WINNING_LINES:
-        if board[a] != EMPTY and board[a] == board[b] == board[c]:
-            return board[a]
+def get_winner(board: Board) -> Optional[str]:
+    """Return the winning symbol, or None if the game has no winner yet."""
+    for first, second, third in WINNING_LINES:
+        if board[first] != EMPTY and board[first] == board[second] == board[third]:
+            return board[first]
     return None
 
 
-def get_best_move(board, ai_symbol, human_symbol):
-    best_score = -math.inf
+def get_best_move(board: Board, ai_symbol: str, human_symbol: str) -> Optional[int]:
+    """Choose the AI's strongest available move with deterministic tie-breaking."""
+    best_score = -inf
     best_move = None
-    move_priority = [4, 0, 2, 6, 8, 1, 3, 5, 7]
 
-    for move in available_moves(board):
+    for move in sorted(available_moves(board), key=MOVE_PRIORITY.index):
         board[move] = ai_symbol
         score = minimax(board, 0, False, ai_symbol, human_symbol)
         board[move] = EMPTY
@@ -50,14 +59,18 @@ def get_best_move(board, ai_symbol, human_symbol):
         if score > best_score:
             best_score = score
             best_move = move
-        elif score == best_score:
-            if move in move_priority and (best_move is None or move_priority.index(move) < move_priority.index(best_move)):
-                best_move = move
 
     return best_move
 
 
-def minimax(board, depth, is_ai_turn, ai_symbol, human_symbol):
+def minimax(
+    board: Board,
+    depth: int,
+    is_ai_turn: bool,
+    ai_symbol: str,
+    human_symbol: str,
+) -> float:
+    """Score a board position assuming both players choose optimally."""
     winner = get_winner(board)
     if winner == ai_symbol:
         return 10 - depth
@@ -67,7 +80,7 @@ def minimax(board, depth, is_ai_turn, ai_symbol, human_symbol):
         return 0
 
     if is_ai_turn:
-        best_score = -math.inf
+        best_score = -inf
         for move in available_moves(board):
             board[move] = ai_symbol
             score = minimax(board, depth + 1, False, ai_symbol, human_symbol)
@@ -75,7 +88,7 @@ def minimax(board, depth, is_ai_turn, ai_symbol, human_symbol):
             best_score = max(best_score, score)
         return best_score
 
-    best_score = math.inf
+    best_score = inf
     for move in available_moves(board):
         board[move] = human_symbol
         score = minimax(board, depth + 1, True, ai_symbol, human_symbol)
@@ -84,7 +97,8 @@ def minimax(board, depth, is_ai_turn, ai_symbol, human_symbol):
     return best_score
 
 
-def safe_input(prompt):
+def safe_input(prompt: str) -> str:
+    """Read terminal input and exit cleanly if the input stream closes."""
     try:
         return input(prompt)
     except EOFError:
@@ -92,7 +106,8 @@ def safe_input(prompt):
         raise SystemExit(0)
 
 
-def get_human_move(board):
+def get_human_move(board: Board) -> int:
+    """Prompt until the player chooses an available square from 1 to 9."""
     while True:
         try:
             move = int(safe_input("Choose a square (1-9): "))
@@ -100,71 +115,77 @@ def get_human_move(board):
             print("Please enter a number from 1 to 9.")
             continue
 
-        if move < 1 or move > 9:
+        if not 1 <= move <= 9:
             print("Your move must be between 1 and 9.")
             continue
 
         index = move - 1
         if board[index] != EMPTY:
-            print("That square is already taken. Try again.")
+            print("That square is already taken. Choose another one.")
             continue
-
         return index
 
 
-def prompt_for_symbol():
+def prompt_for_symbol() -> str:
+    """Ask the player whether they want to play as X or O."""
     while True:
-        symbol = safe_input("Choose your symbol: X or O: ").strip().upper()
+        symbol = safe_input("Choose your symbol (X/O): ").strip().upper()
         if symbol in {"X", "O"}:
             return symbol
-        print("Invalid choice. Please type X or O.")
+        print("Please enter X or O.")
 
 
-def play_game():
+def play_game() -> None:
+    """Play one complete game against the computer opponent."""
     board = [EMPTY] * 9
     human_symbol = prompt_for_symbol()
     ai_symbol = "O" if human_symbol == "X" else "X"
     current_player = "human" if human_symbol == "X" else "ai"
 
-    print("\nAI opponent is ready. You are playing as", human_symbol)
-    print("Board positions are numbered 1 through 9.")
+    print(f"\nYou are {human_symbol}; the computer is {ai_symbol}.")
+    print("Choose a square by entering its number.")
 
     while True:
         if current_player == "human":
             print_board(board)
-            move = get_human_move(board)
-            board[move] = human_symbol
+            board[get_human_move(board)] = human_symbol
             current_player = "ai"
         else:
-            print("AI is thinking...")
+            print("\nComputer is thinking...")
             move = get_best_move(board, ai_symbol, human_symbol)
+            if move is None:
+                break
             board[move] = ai_symbol
-            print(f"AI plays at square {move + 1}.")
+            print(f"Computer chose square {move + 1}.")
             current_player = "human"
 
         winner = get_winner(board)
         if winner:
             print_board(board)
             if winner == human_symbol:
-                print("You win! Great job.")
+                print("You win! Great game.")
             else:
-                print("AI wins! Better luck next time.")
-            break
+                print("The computer wins. Better luck next time!")
+            return
 
         if is_full(board):
             print_board(board)
             print("It's a draw!")
-            break
+            return
 
 
-def main():
-    print("Welcome to Tic-Tac-Toe against an AI opponent!")
+def main() -> None:
+    """Display the game menu and offer another round after each game."""
+    print("=" * 52)
+    print("           TIC-TAC-TOE  |  PLAYER VS COMPUTER")
+    print("=" * 52)
+    print("Get three of your symbols in a row to win.\n")
 
     while True:
         play_game()
-        again = input("Play again? (y/n): ").strip().lower()
+        again = safe_input("Play another round? (y/n): ").strip().lower()
         if again not in {"y", "yes"}:
-            print("Thanks for playing!")
+            print("Thanks for playing. See you next time!")
             break
 
 
