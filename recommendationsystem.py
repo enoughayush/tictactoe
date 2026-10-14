@@ -3,13 +3,13 @@
 Run with:
     py recommendationsystem.py
 
-Select movies you like, then click the button to see similar movies.
+Type one or more movie titles from the catalog, separated by commas.
 """
 
 import tkinter as tk
 from tkinter import messagebox
 
-# Movie titles are matched to a short list of genres.
+# The recommender can suggest only movies in this small built-in catalog.
 MOVIES = {
     "The Matrix": ["action", "science fiction"],
     "Inception": ["action", "science fiction", "thriller"],
@@ -33,7 +33,7 @@ MOVIES = {
 
 
 def recommend_movies(liked_movies, number_of_recommendations=5):
-    """Return movies with the most genres in common with the selected movies."""
+    """Return catalog movies that share genres with the user's titles."""
     genre_preferences = {}
 
     for movie in liked_movies:
@@ -45,9 +45,7 @@ def recommend_movies(liked_movies, number_of_recommendations=5):
         if movie in liked_movies:
             continue
 
-        score = 0
-        for genre in genres:
-            score += genre_preferences.get(genre, 0)
+        score = sum(genre_preferences.get(genre, 0) for genre in genres)
         if score > 0:
             scores[movie] = score
 
@@ -56,15 +54,32 @@ def recommend_movies(liked_movies, number_of_recommendations=5):
 
 
 def show_recommendations():
-    """Read the selected movies and display recommendations in the window."""
-    selected_indexes = movie_list.curselection()
-    if not selected_indexes:
-        messagebox.showinfo("Choose movies", "Select at least one movie you like.")
+    """Check the typed titles and show matching movie recommendations."""
+    typed_titles = [title.strip() for title in title_entry.get().split(",") if title.strip()]
+    if not typed_titles:
+        messagebox.showinfo("Enter a movie", "Type at least one movie title first.")
         return
 
-    liked_movies = [movie_list.get(index) for index in selected_indexes]
-    suggestions = recommend_movies(liked_movies)
+    # Match without case sensitivity but use the catalog's official spelling.
+    catalog_titles = {title.lower(): title for title in MOVIES}
+    liked_movies = []
+    unknown_titles = []
+    for title in typed_titles:
+        catalog_title = catalog_titles.get(title.lower())
+        if catalog_title is None:
+            unknown_titles.append(title)
+        elif catalog_title not in liked_movies:
+            liked_movies.append(catalog_title)
 
+    if unknown_titles:
+        messagebox.showerror(
+            "Movie not in catalog",
+            "I couldn't find: " + ", ".join(unknown_titles)
+            + "\nUse a title shown in the catalog list.",
+        )
+        return
+
+    suggestions = recommend_movies(liked_movies)
     recommendation_list.delete(0, tk.END)
     if not suggestions:
         recommendation_list.insert(tk.END, "No similar movies found.")
@@ -75,35 +90,51 @@ def show_recommendations():
         recommendation_list.insert(tk.END, f"{movie} ({genres})")
 
 
-# Create a small, simple desktop window.
+# Create a basic window for entering preferences and viewing suggestions.
 window = tk.Tk()
 window.title("Movie Recommendation System")
-window.geometry("600x620")
+window.geometry("650x720")
 
 heading = tk.Label(window, text="Movie Recommendation System", font=("Arial", 18, "bold"))
-heading.pack(pady=(18, 6))
+heading.pack(pady=(16, 6))
 
 instructions = tk.Label(
     window,
-    text="Select movies you like. The program will suggest movies with similar genres.",
-    wraplength=520,
+    text="Type the movies you like, separated by commas. Recommendations use shared genres.",
+    wraplength=580,
 )
-instructions.pack(pady=(0, 12))
+instructions.pack(pady=(0, 10))
 
-movie_list = tk.Listbox(window, selectmode=tk.MULTIPLE, height=14, width=55, exportselection=False)
-movie_list.pack(padx=20, pady=5, fill="x")
+title_entry = tk.Entry(window, width=68)
+title_entry.pack(padx=20, pady=(0, 8), fill="x")
+tk.Label(window, text="Example: The Matrix, Inception", fg="gray").pack(anchor="w", padx=22, pady=(0, 6))
+
+catalog_heading = tk.Label(window, text="Titles you can enter:", font=("Arial", 11, "bold"))
+catalog_heading.pack(anchor="w", padx=25, pady=(8, 3))
+
+catalog_frame = tk.Frame(window)
+catalog_frame.pack(padx=20, pady=4, fill="x")
+catalog_scrollbar = tk.Scrollbar(catalog_frame)
+catalog_scrollbar.pack(side="right", fill="y")
+catalog_list = tk.Listbox(
+    catalog_frame, height=13, width=60, yscrollcommand=catalog_scrollbar.set
+)
+catalog_list.pack(side="left", fill="both", expand=True)
+catalog_scrollbar.configure(command=catalog_list.yview)
 for movie_title in MOVIES:
-    movie_list.insert(tk.END, movie_title)
+    catalog_list.insert(tk.END, movie_title)
+catalog_list.configure(state=tk.DISABLED)
 
 recommend_button = tk.Button(
     window, text="Get Recommendations", command=show_recommendations, padx=12, pady=6
 )
-recommend_button.pack(pady=12)
+recommend_button.pack(pady=10)
 
 results_heading = tk.Label(window, text="Recommended movies:", font=("Arial", 12, "bold"))
 results_heading.pack(anchor="w", padx=25)
 
-recommendation_list = tk.Listbox(window, height=7, width=55)
-recommendation_list.pack(padx=20, pady=(5, 16), fill="both", expand=True)
+recommendation_list = tk.Listbox(window, height=7, width=60)
+recommendation_list.pack(padx=20, pady=(5, 15), fill="both", expand=True)
 
 window.mainloop()
+
