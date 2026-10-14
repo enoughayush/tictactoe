@@ -18,6 +18,8 @@ known_faces/Sam/photo1.jpg
 import argparse
 from pathlib import Path
 import sys
+from urllib.error import URLError
+from urllib.request import urlopen
 
 try:
     import cv2
@@ -33,13 +35,46 @@ VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".wmv"}
 
 
 def load_face_detector():
-    """Load OpenCV's built-in Haar Cascade face detector."""
-    cascade_path = Path(cv2.data.haarcascades) / "haarcascade_frontalface_default.xml"
-    detector = cv2.CascadeClassifier(str(cascade_path))
-    if detector.empty():
-        raise RuntimeError(f"Could not load the Haar Cascade file: {cascade_path}")
-    return detector
+    """Load the Haar Cascade, downloading it if this OpenCV build omitted it."""
+    filename = "haarcascade_frontalface_default.xml"
+    candidates = [Path(__file__).with_name(filename)]
+    cascade_dir = getattr(getattr(cv2, "data", None), "haarcascades", None)
+    if cascade_dir:
+        candidates.insert(0, Path(cascade_dir) / filename)
 
+    for cascade_path in candidates:
+        if cascade_path.is_file():
+            detector = cv2.CascadeClassifier(str(cascade_path))
+            if not detector.empty():
+                return detector
+
+    # OpenCV 5.0 wheels may omit the XML cascade files. Cache the official
+    # model in the user's home folder so it is downloaded only once.
+    cache_path = Path.home() / ".opencv" / filename
+    if not cache_path.is_file():
+        url = (
+            "https://raw.githubusercontent.com/opencv/opencv/4.x/"
+            "data/haarcascades/haarcascade_frontalface_default.xml"
+        )
+        try:
+            print("Haar Cascade not found in OpenCV; downloading it once...")
+            with urlopen(url, timeout=30) as response:
+                model_data = response.read()
+            if not model_data.startswith(b"<?xml"):
+                raise RuntimeError("The downloaded Haar Cascade file is invalid.")
+            cache_path.parent.mkdir(parents=True, exist_ok=True)
+            cache_path.write_bytes(model_data)
+        except (OSError, URLError) as exc:
+            raise RuntimeError(
+                "Could not download the Haar Cascade. Check your internet connection "
+                "or download haarcascade_frontalface_default.xml from the OpenCV "
+                "repository and place it beside facedetection.py."
+            ) from exc
+
+    detector = cv2.CascadeClassifier(str(cache_path))
+    if detector.empty():
+        raise RuntimeError(f"Could not load the Haar Cascade file: {cache_path}")
+    return detector
 
 def train_face_recognizer(known_faces_folder: Path, detector):
     """Train LBPH using face photos stored in one folder per person."""
@@ -244,4 +279,5 @@ def main():
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 
