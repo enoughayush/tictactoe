@@ -1,5 +1,6 @@
-"""AI-Based Tic-Tac-Toe Game with a minimax computer opponent."""
+﻿"""AI-Based Tic-Tac-Toe Game with a minimax computer opponent."""
 
+import random
 from math import inf
 from typing import List, Optional, Tuple
 
@@ -97,6 +98,25 @@ def minimax(
     return best_score
 
 
+def get_ai_move(board: Board, ai_symbol: str, human_symbol: str, difficulty: str) -> Optional[int]:
+    """Choose a move at the selected strength: easy, medium, or hard."""
+    moves = available_moves(board)
+    if not moves:
+        return None
+    if difficulty == "easy":
+        return random.choice(moves)
+    if difficulty == "medium":
+        # Take a winning move first, then block an immediate human win.
+        for symbol in (ai_symbol, human_symbol):
+            for move in moves:
+                board[move] = symbol
+                wins = get_winner(board) == symbol
+                board[move] = EMPTY
+                if wins:
+                    return move
+        return random.choice(moves)
+    return get_best_move(board, ai_symbol, human_symbol)
+
 def safe_input(prompt: str) -> str:
     """Read terminal input and exit cleanly if the input stream closes."""
     try:
@@ -135,14 +155,23 @@ def prompt_for_symbol() -> str:
         print("Please enter X or O.")
 
 
+def prompt_for_difficulty() -> str:
+    """Ask the player to choose how challenging the computer should be."""
+    while True:
+        choice = safe_input("Choose difficulty (easy/medium/hard): ").strip().lower()
+        if choice in {"easy", "medium", "hard"}:
+            return choice
+        print("Please enter easy, medium, or hard.")
+
 def play_game() -> None:
     """Play one complete game against the computer opponent."""
     board = [EMPTY] * 9
     human_symbol = prompt_for_symbol()
+    difficulty = prompt_for_difficulty()
     ai_symbol = "O" if human_symbol == "X" else "X"
     current_player = "human" if human_symbol == "X" else "ai"
 
-    print(f"\nYou are {human_symbol}; the computer is {ai_symbol}.")
+    print(f"\nYou are {human_symbol}; the computer is {ai_symbol} ({difficulty} mode).")
     print("Choose a square by entering its number.")
 
     while True:
@@ -152,7 +181,7 @@ def play_game() -> None:
             current_player = "ai"
         else:
             print("\nComputer is thinking...")
-            move = get_best_move(board, ai_symbol, human_symbol)
+            move = get_ai_move(board, ai_symbol, human_symbol, difficulty)
             if move is None:
                 break
             board[move] = ai_symbol
@@ -191,3 +220,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+

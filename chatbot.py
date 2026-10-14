@@ -1,6 +1,8 @@
-"""Predefined-Rules Chatbot: an offline, rule-based conversational program."""
+﻿"""Predefined-Rules Chatbot: an offline, rule-based conversational program."""
 
 import ast
+from collections import Counter
+from math import log, sqrt
 import operator
 import random
 import re
@@ -36,6 +38,62 @@ JOKES = (
     "Why do programmers prefer dark mode? Because light attracts bugs!",
 )
 
+
+# Lightweight FAQ retrieval adds basic NLP without downloading a language model.
+FAQS = (
+    ("what is artificial intelligence ai", "AI is software that performs tasks such as recognizing patterns, making predictions, or understanding language."),
+    ("what is machine learning", "Machine learning is a way for computers to learn patterns from examples instead of following only hand-written rules."),
+    ("what is deep learning neural network", "Deep learning uses layered neural networks to learn patterns from data, often for images, speech, and text."),
+    ("what is image captioning", "Image captioning combines computer vision and language generation to describe an image in words."),
+    ("what is a recommendation system", "A recommendation system suggests items using preferences, item similarities, or patterns in other users' choices."),
+    ("what is minimax tic tac toe", "Minimax searches possible moves and assumes both players choose well. In tic-tac-toe it can guarantee at least a draw."),
+    ("how can i learn python programming coding", "Start with variables, conditions, loops, and functions. Then build small projects and read the errors when something breaks."),
+    ("how can i study prepare for an exam", "Break the material into small topics, practise recalling it without notes, and take short breaks between focused sessions."),
+    ("how do i choose a movie recommendation", "A content-based recommender compares item features, such as movie genres, with the preferences you give it."),
+    ("why does an ai model make mistakes", "AI models learn from limited examples and can miss context or reflect gaps in their data. Check important answers against reliable sources."),
+)
+
+_STOP_WORDS = {"a", "an", "and", "are", "can", "do", "does", "for", "how", "i", "is", "it", "me", "my", "of", "please", "tell", "the", "to", "what", "with", "you"}
+_SYNONYMS = {
+    "artificial": "ai", "intelligence": "ai", "machine": "ml",
+    "learning": "learn", "studying": "study", "programming": "coding",
+    "code": "coding", "pictures": "image", "photos": "image",
+    "captions": "caption", "movies": "movie", "recommendations": "recommendation",
+    "networks": "network", "models": "model", "mistakes": "mistake",
+}
+
+
+def _tokens(text: str) -> set[str]:
+    """Normalize a sentence into useful words for FAQ matching."""
+    words = re.findall(r"[a-z0-9]+", text.lower())
+    return {_SYNONYMS.get(word, word) for word in words if word not in _STOP_WORDS}
+
+
+def find_faq_answer(message: str) -> str | None:
+    """Return the closest FAQ answer when its TF-IDF overlap is strong enough."""
+    query = _tokens(message)
+    if not query:
+        return None
+    documents = [_tokens(question) for question, _ in FAQS]
+    document_frequency = Counter(word for document in documents for word in document)
+    count = len(documents)
+    best_score = 0.0
+    best_answer = None
+
+    for (_, answer), document in zip(FAQS, documents):
+        weights = {
+            word: 1.0 + log((count + 1) / (document_frequency[word] + 1))
+            for word in query | document
+        }
+        shared = query & document
+        dot = sum(weights[word] ** 2 for word in shared)
+        query_norm = sum(weights[word] ** 2 for word in query)
+        document_norm = sum(weights[word] ** 2 for word in document)
+        score = dot / sqrt(query_norm * document_norm) if query_norm and document_norm else 0.0
+        if score > best_score:
+            best_score, best_answer = score, answer
+
+    return best_answer if best_score >= 0.38 else None
 
 def calculate(expression: str) -> Number:
     """Safely evaluate a basic arithmetic expression."""
@@ -86,10 +144,10 @@ def get_response(message: str) -> str:
     if re.search(r"\bhow are you\b", text):
         return "I'm doing well, thanks for asking. What can I help with?"
     if re.search(r"\b(your name|who are you)\b", text):
-        return "I'm ChatBot, an offline chatbot that uses predefined rules."
+        return "I'm ChatBot, an offline assistant with rules and lightweight FAQ matching."
     if re.search(r"\bwhat can you do\b|\bhelp\b", text):
         return (
-            "I can chat about common topics, tell a joke, share a few capital cities, "
+            "I can answer common AI and programming questions, tell a joke, share capitals, "
             "give the date or time, and calculate basic math."
         )
     if re.search(r"\b(thank you|thanks|thx)\b", text):
@@ -106,6 +164,10 @@ def get_response(message: str) -> str:
         return "I'm sorry you're having a hard time. Would you like to tell me more?"
     if re.search(r"\b(happy|excited|great day)\b", text):
         return "That's great to hear! What made your day good?"
+    faq_answer = find_faq_answer(text)
+    if faq_answer:
+        return faq_answer
+
     if re.search(r"\b(study|studying|exam|homework)\b", text):
         return "Try studying in short sessions with small breaks. What subject are you working on?"
     if re.search(r"\b(python|programming|coding)\b", text):
@@ -123,14 +185,14 @@ def get_response(message: str) -> str:
 
     return (
         "I don't have a rule for that yet, and I work offline. "
-        "Try asking for help, a joke, the date or time, a capital, or a math calculation."
+        "Try rephrasing, or type help for examples."
     )
 
 
 def main() -> None:
     """Run the chatbot in an interactive terminal session."""
     print("=" * 52)
-    print("           PREDEFINED-RULES CHATBOT")
+    print("              LOCAL NLP CHATBOT")
     print("=" * 52)
     print("Type 'help' to see what I can do, or 'bye' to exit.\n")
 
@@ -149,3 +211,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
+

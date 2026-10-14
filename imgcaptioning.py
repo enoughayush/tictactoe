@@ -1,7 +1,7 @@
 ﻿"""Generate natural-language captions for images with a pretrained BLIP model.
 
 Install dependencies with:
-    python -m pip install torch transformers pillow
+    py -m pip install torch transformers pillow
 
 Usage:
     python imgcaptioning.py path/to/photo.jpg
@@ -23,7 +23,7 @@ except ImportError as exc:
     missing_package = getattr(exc, "name", None) or "a required package"
     raise SystemExit(
         f"Missing dependency: {missing_package}. Install the requirements with:\n"
-        "  python -m pip install torch transformers pillow"
+        "  py -m pip install torch transformers pillow"
     ) from exc
 
 DEFAULT_MODEL = "Salesforce/blip-image-captioning-base"
@@ -135,5 +135,6 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 
 
