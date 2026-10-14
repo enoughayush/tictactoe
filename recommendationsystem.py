@@ -1,115 +1,117 @@
-﻿"""A simple movie recommendation system using genre matching.
+﻿"""A simple product recommendation system using shared product features.
 
 Run with:
     py recommendationsystem.py
 
-Type one or more movie titles from the catalog, separated by commas.
+Type one or more product names from the catalog, separated by commas.
 """
 
 import tkinter as tk
 from tkinter import messagebox
 
-# The recommender can suggest only movies in this small built-in catalog.
-MOVIES = {
-    "The Matrix": ["action", "science fiction"],
-    "Inception": ["action", "science fiction", "thriller"],
-    "Interstellar": ["adventure", "science fiction", "drama"],
-    "The Dark Knight": ["action", "crime", "drama"],
-    "Spider-Man: Into the Spider-Verse": ["action", "adventure", "animation"],
-    "Toy Story": ["animation", "adventure", "comedy"],
-    "Finding Nemo": ["animation", "adventure", "comedy"],
-    "The Grand Budapest Hotel": ["comedy", "adventure"],
-    "Parasite": ["thriller", "drama", "comedy"],
-    "Knives Out": ["mystery", "comedy", "crime"],
-    "Get Out": ["horror", "mystery", "thriller"],
-    "A Quiet Place": ["horror", "thriller", "drama"],
-    "Pride & Prejudice": ["romance", "drama"],
-    "La La Land": ["romance", "drama", "music"],
-    "The Shawshank Redemption": ["drama", "crime"],
-    "Mad Max: Fury Road": ["action", "adventure", "science fiction"],
-    "Coco": ["animation", "adventure", "music", "drama"],
-    "The Princess Bride": ["adventure", "comedy", "romance"],
+# Each product has a few features used to find similar products.
+PRODUCTS = {
+    "Wireless Headphones": ["audio", "wireless", "travel", "entertainment"],
+    "Bluetooth Speaker": ["audio", "wireless", "portable", "entertainment"],
+    "E-reader": ["reading", "books", "portable", "travel"],
+    "Tablet": ["electronics", "reading", "portable", "work"],
+    "Laptop Stand": ["computer", "desk", "work", "ergonomic"],
+    "Mechanical Keyboard": ["computer", "desk", "work", "gaming"],
+    "Wireless Mouse": ["computer", "desk", "work", "portable"],
+    "Webcam": ["computer", "work", "video", "accessories"],
+    "Smart Watch": ["fitness", "wearable", "health", "notifications"],
+    "Fitness Tracker": ["fitness", "wearable", "health", "running"],
+    "Running Shoes": ["fitness", "running", "outdoors", "clothing"],
+    "Yoga Mat": ["fitness", "exercise", "home", "wellness"],
+    "Coffee Maker": ["kitchen", "coffee", "home", "appliances"],
+    "Air Fryer": ["kitchen", "cooking", "home", "appliances"],
+    "Reusable Water Bottle": ["fitness", "travel", "reusable", "outdoors"],
+    "Backpack": ["travel", "school", "storage", "outdoors"],
+    "Desk Lamp": ["desk", "home", "lighting", "work"],
+    "Power Bank": ["portable", "travel", "electronics", "charging"],
 }
 
 
-def recommend_movies(liked_movies, number_of_recommendations=5):
-    """Return catalog movies that share genres with the user's titles."""
-    genre_preferences = {}
+def recommend_products(liked_products, number_of_recommendations=5):
+    """Return products that share the most features with the user's choices."""
+    feature_preferences = {}
 
-    for movie in liked_movies:
-        for genre in MOVIES[movie]:
-            genre_preferences[genre] = genre_preferences.get(genre, 0) + 1
+    for product in liked_products:
+        for feature in PRODUCTS[product]:
+            feature_preferences[feature] = feature_preferences.get(feature, 0) + 1
 
     scores = {}
-    for movie, genres in MOVIES.items():
-        if movie in liked_movies:
+    for product, features in PRODUCTS.items():
+        if product in liked_products:
             continue
 
-        score = sum(genre_preferences.get(genre, 0) for genre in genres)
+        score = sum(feature_preferences.get(feature, 0) for feature in features)
         if score > 0:
-            scores[movie] = score
+            scores[product] = score
 
-    ranked_movies = sorted(scores, key=scores.get, reverse=True)
-    return ranked_movies[:number_of_recommendations]
+    ranked_products = sorted(scores, key=scores.get, reverse=True)
+    return ranked_products[:number_of_recommendations]
 
 
 def show_recommendations():
-    """Check the typed titles and show matching movie recommendations."""
-    typed_titles = [title.strip() for title in title_entry.get().split(",") if title.strip()]
-    if not typed_titles:
-        messagebox.showinfo("Enter a movie", "Type at least one movie title first.")
+    """Check the typed product names and display similar products."""
+    typed_names = [name.strip() for name in product_entry.get().split(",") if name.strip()]
+    if not typed_names:
+        messagebox.showinfo("Enter a product", "Type at least one product name first.")
         return
 
-    # Match without case sensitivity but use the catalog's official spelling.
-    catalog_titles = {title.lower(): title for title in MOVIES}
-    liked_movies = []
-    unknown_titles = []
-    for title in typed_titles:
-        catalog_title = catalog_titles.get(title.lower())
-        if catalog_title is None:
-            unknown_titles.append(title)
-        elif catalog_title not in liked_movies:
-            liked_movies.append(catalog_title)
+    # Ignore capitalization differences and use the catalog's spelling.
+    catalog_names = {name.lower(): name for name in PRODUCTS}
+    liked_products = []
+    unknown_names = []
+    for name in typed_names:
+        product_name = catalog_names.get(name.lower())
+        if product_name is None:
+            unknown_names.append(name)
+        elif product_name not in liked_products:
+            liked_products.append(product_name)
 
-    if unknown_titles:
+    if unknown_names:
         messagebox.showerror(
-            "Movie not in catalog",
-            "I couldn't find: " + ", ".join(unknown_titles)
-            + "\nUse a title shown in the catalog list.",
+            "Product not in catalog",
+            "I couldn't find: " + ", ".join(unknown_names)
+            + "\nUse a product name shown in the catalog list.",
         )
         return
 
-    suggestions = recommend_movies(liked_movies)
+    suggestions = recommend_products(liked_products)
     recommendation_list.delete(0, tk.END)
     if not suggestions:
-        recommendation_list.insert(tk.END, "No similar movies found.")
+        recommendation_list.insert(tk.END, "No similar products found.")
         return
 
-    for movie in suggestions:
-        genres = ", ".join(MOVIES[movie])
-        recommendation_list.insert(tk.END, f"{movie} ({genres})")
+    for product in suggestions:
+        features = ", ".join(PRODUCTS[product])
+        recommendation_list.insert(tk.END, f"{product} ({features})")
 
 
 # Create a basic window for entering preferences and viewing suggestions.
 window = tk.Tk()
-window.title("Movie Recommendation System")
+window.title("Product Recommendation System")
 window.geometry("650x720")
 
-heading = tk.Label(window, text="Movie Recommendation System", font=("Arial", 18, "bold"))
+heading = tk.Label(window, text="Product Recommendation System", font=("Arial", 18, "bold"))
 heading.pack(pady=(16, 6))
 
 instructions = tk.Label(
     window,
-    text="Type the movies you like, separated by commas. Recommendations use shared genres.",
+    text="Type products you like, separated by commas. Suggestions use shared features.",
     wraplength=580,
 )
 instructions.pack(pady=(0, 10))
 
-title_entry = tk.Entry(window, width=68)
-title_entry.pack(padx=20, pady=(0, 8), fill="x")
-tk.Label(window, text="Example: The Matrix, Inception", fg="gray").pack(anchor="w", padx=22, pady=(0, 6))
+product_entry = tk.Entry(window, width=68)
+product_entry.pack(padx=20, pady=(0, 4), fill="x")
+tk.Label(window, text="Example: Wireless Mouse, Mechanical Keyboard", fg="gray").pack(
+    anchor="w", padx=22, pady=(0, 6)
+)
 
-catalog_heading = tk.Label(window, text="Titles you can enter:", font=("Arial", 11, "bold"))
+catalog_heading = tk.Label(window, text="Products you can enter:", font=("Arial", 11, "bold"))
 catalog_heading.pack(anchor="w", padx=25, pady=(8, 3))
 
 catalog_frame = tk.Frame(window)
@@ -121,8 +123,8 @@ catalog_list = tk.Listbox(
 )
 catalog_list.pack(side="left", fill="both", expand=True)
 catalog_scrollbar.configure(command=catalog_list.yview)
-for movie_title in MOVIES:
-    catalog_list.insert(tk.END, movie_title)
+for product_name in PRODUCTS:
+    catalog_list.insert(tk.END, product_name)
 catalog_list.configure(state=tk.DISABLED)
 
 recommend_button = tk.Button(
@@ -130,11 +132,10 @@ recommend_button = tk.Button(
 )
 recommend_button.pack(pady=10)
 
-results_heading = tk.Label(window, text="Recommended movies:", font=("Arial", 12, "bold"))
+results_heading = tk.Label(window, text="Recommended products:", font=("Arial", 12, "bold"))
 results_heading.pack(anchor="w", padx=25)
 
 recommendation_list = tk.Listbox(window, height=7, width=60)
 recommendation_list.pack(padx=20, pady=(5, 15), fill="both", expand=True)
 
 window.mainloop()
-
